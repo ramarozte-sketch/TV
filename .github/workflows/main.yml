@@ -21,10 +21,11 @@ jobs:
           gradle-version: '8.7'
 
       - name: Compilar
+        working-directory: cockpit-tv-android
         run: gradle assembleRelease --no-daemon
 
       - name: Guardar o APK
         uses: actions/upload-artifact@v4
         with:
           name: CockpitTV-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: cockpit-tv-android/app/build/outputs/apk/release/*.apk

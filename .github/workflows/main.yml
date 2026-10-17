@@ -20,12 +20,19 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Descompactar o projeto
+        run: |
+          unzip -q cockpit-tv-android.zip -d proj
+          S=$(find proj -name settings.gradle | head -1)
+          if [ -z "$S" ]; then echo "ERRO: settings.gradle não encontrado no zip"; exit 1; fi
+          echo "PROJ=$(dirname "$S")" >> $GITHUB_ENV
+
       - name: Compilar
-        working-directory: cockpit-tv-android
+        working-directory: ${{ env.PROJ }}
         run: gradle assembleRelease --no-daemon
 
       - name: Guardar o APK
         uses: actions/upload-artifact@v4
         with:
           name: CockpitTV-apk
-          path: cockpit-tv-android/app/build/outputs/apk/release/*.apk
+          path: ${{ env.PROJ }}/app/build/outputs/apk/release/*.apk

@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -20,19 +22,21 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Descompactar o projeto
-        run: |
-          unzip -q cockpit-tv-android.zip -d proj
-          S=$(find proj -name settings.gradle | head -1)
-          if [ -z "$S" ]; then echo "ERRO: settings.gradle não encontrado no zip"; exit 1; fi
-          echo "PROJ=$(dirname "$S")" >> $GITHUB_ENV
-
       - name: Compilar
-        working-directory: ${{ env.PROJ }}
         run: gradle assembleRelease --no-daemon
 
       - name: Guardar o APK
         uses: actions/upload-artifact@v4
+        continue-on-error: true   # a quota de artefactos do GitHub pode estar cheia; o APK vai também para Releases
         with:
           name: CockpitTV-apk
-          path: ${{ env.PROJ }}/app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 1
+          overwrite: true
+
+      - name: Publicar o APK em Releases (não conta para a quota de artefactos)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest app/build/outputs/apk/release/*.apk --title "CockpitTV (último APK)" --notes "APK mais recente, compilado automaticamente." --target "${{ github.sha }}"

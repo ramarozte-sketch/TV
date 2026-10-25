@@ -10,8 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      APP_DIR: proj/cockpit-tv-android
     steps:
       - uses: actions/checkout@v4
+
+      - name: Descompactar o projeto
+        run: |
+          mkdir -p proj
+          unzip -q cockpit-tv-android.zip -d proj
+          ls proj
 
       - uses: actions/setup-java@v4
         with:
@@ -23,20 +31,21 @@ jobs:
           gradle-version: '8.7'
 
       - name: Compilar
+        working-directory: ${{ env.APP_DIR }}
         run: gradle assembleRelease --no-daemon
 
       - name: Guardar o APK
         uses: actions/upload-artifact@v4
-        continue-on-error: true   # a quota de artefactos do GitHub pode estar cheia; o APK vai também para Releases
+        continue-on-error: true
         with:
           name: CockpitTV-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: ${{ env.APP_DIR }}/app/build/outputs/apk/release/*.apk
           retention-days: 1
           overwrite: true
 
-      - name: Publicar o APK em Releases (não conta para a quota de artefactos)
+      - name: Publicar o APK em Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete apk-latest --yes --cleanup-tag || true
-          gh release create apk-latest app/build/outputs/apk/release/*.apk --title "CockpitTV (último APK)" --notes "APK mais recente, compilado automaticamente." --target "${{ github.sha }}"
+          gh release create apk-latest ${{ env.APP_DIR }}/app/build/outputs/apk/release/*.apk --title "CockpitTV (último APK)" --notes "APK mais recente, compilado automaticamente." --target "${{ github.sha }}"

@@ -32,7 +32,19 @@ jobs:
 
       - name: Compilar
         working-directory: ${{ env.APP_DIR }}
-        run: gradle assembleRelease --no-daemon
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle assembleRelease --no-daemon 2>&1 | tee build.log
+
+      - name: Guardar o erro de compilação
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete build-error --yes --cleanup-tag || true
+          { echo '```'; grep -E "error:|\.java:[0-9]+|FAILED|What went wrong" -A3 ${{ env.APP_DIR }}/build.log | head -80; echo '```'; } > /tmp/err.md
+          gh release create build-error --title "Erro de compilação" --notes-file /tmp/err.md --target "${{ github.sha }}"
 
       - name: Guardar o APK
         uses: actions/upload-artifact@v4

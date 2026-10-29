@@ -49,3 +49,13 @@ jobs:
         run: |
           gh release delete apk-latest --yes --cleanup-tag || true
           gh release create apk-latest ${{ env.APP_DIR }}/app/build/outputs/apk/release/*.apk --title "CockpitTV (último APK)" --notes "APK mais recente, compilado automaticamente." --target "${{ github.sha }}"
+
+      - name: Publicar o APK numa Release (ligação direta)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=$(ls ${{ env.APP_DIR }}/app/build/outputs/apk/release/*.apk | head -1)
+          cp "$APK" CockpitTV.apk
+          gh release delete latest -y --cleanup-tag -R ${{ github.repository }} || true
+          gh release create latest CockpitTV.apk -R ${{ github.repository }} --title "Cockpit TV (última versão)" --notes "APK da última compilação" --target ${{ github.sha }}

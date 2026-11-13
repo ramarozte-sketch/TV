@@ -1,5 +1,8 @@
 name: Limpar Actions
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'   # todas as segundas-feiras
 permissions:
   actions: write
 jobs:
@@ -8,11 +11,13 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Apagar artefactos
+      - name: Apagar execuções antigas (mantém as 5 mais recentes)
+        run: |
+          gh run list -R ${{ github.repository }} --limit 1000 --json databaseId,status -q '.[] | select(.status=="completed") | .databaseId' \
+            | tail -n +6 \
+            | xargs -r -I{} sh -c 'gh run delete {} -R ${{ github.repository }} || true'
+      - name: Apagar artefactos antigos (mantém os 3 mais recentes)
         run: |
           gh api repos/${{ github.repository }}/actions/artifacts --paginate -q '.artifacts[].id' \
-            | xargs -r -I{} gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/{}
-      - name: Apagar execuções antigas
-        run: |
-          gh run list -R ${{ github.repository }} --limit 1000 --json databaseId -q '.[].databaseId' \
-            | xargs -r -I{} gh run delete {} -R ${{ github.repository }}
+            | tail -n +4 \
+            | xargs -r -I{} sh -c 'gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/{} || true'

@@ -46,15 +46,6 @@ jobs:
           { echo '```'; grep -E "error:|\.java:[0-9]+|FAILED|What went wrong" -A3 ${{ env.APP_DIR }}/build.log | head -80; echo '```'; } > /tmp/err.md
           gh release create build-error --title "Erro de compilação" --notes-file /tmp/err.md --target "${{ github.sha }}"
 
-      - name: Guardar o APK
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: CockpitTV-apk
-          path: ${{ env.APP_DIR }}/app/build/outputs/apk/release/*.apk
-          retention-days: 1
-          overwrite: true
-
       - name: Publicar o APK em Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
